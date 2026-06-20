@@ -1,87 +1,63 @@
-# Unity MRUK Sample
+# Voxel Territory *(working title — rename freely)*
 
-This sample project will help you navigate and understand the MR Utility Kit APIs through a collection of samples that. Feel free to delve into these APIs, try them out, and discover creative ways to apply them in your projects.
+A mixed-reality, voxel territory-control game for Meta Quest. You pilot a snake-like
+head through a 3D grid anchored to your real room. Everywhere it has been becomes a
+**permanent voxel wall**, partitioning the space. Crash into any wall — yours, your
+opponent's, or the boundary — and the round ends. The goal is to claim volume and
+trap your opponent before they trap you.
 
-The [Oculus License](./LICENSE) applies to the samples.
+It is **not** Snake, Tron, or any specific arcade title. The mechanic is the
+light-cycle *lineage* — claiming space with a permanent trail — which is genre, not
+trademark. The creative bet is that this reads as a native MR game, not a "well-known
+game but in 3D" port. See `docs/DECISIONS.md` (D1) for why this concept was chosen
+over the alternatives we considered (Snake, Tetris, Pac-Man, Centipede, voxel-carving).
 
-This project was built using the [Unity engine](https://unity.com/download).
+---
 
-## Mixed Reality Utility Kit Overview
+## Status
 
-MR Utility Kit provides a rich set of utilities and tools on top of Scene API to perform common operations when building spatially-aware apps. This makes it easier to program against the physical world, and allows developers to focus on what makes their app unique.
+Pre-implementation. This repository currently contains the design and engineering
+handoff only — no code yet. The first deliverable is a **fully working solo-vs-AI
+game** (the "v1 ship"); multiplayer, remote play, and a phone spectator are deliberately
+deferred (see `docs/ROADMAP.md`).
 
-The utilities provided broadly fall into 3 categories: Scene Queries, Graphical Helpers, Development Tools.
+## Who this is for
 
-More information on MR Utility Kit can be found on our [developer website](https://developers.meta.com/horizon/documentation/unity/unity-mr-utility-kit-overview/).
+The lead is a senior Unity developer with 5+ years of Quest development experience and
+existing proof-of-concepts for spatial anchors and WebRTC-based multiplayer/voice. The
+docs therefore assume Unity/Quest fluency and do **not** re-explain passthrough,
+anchors, or XR basics. They focus on the decisions, the architecture seams, and the
+specific risks that are easy to get wrong.
 
+## Repository map
 
-## Project Structure
+| File | What it is | Read it when |
+|---|---|---|
+| `README.md` | This file — orientation and quick start | First |
+| `AGENTS.md` | Operating manual for a coding agent: prime directives, conventions, gates, definition of done | Before writing any code |
+| `docs/SPEC.md` | The v1 specification: vision, scope, architecture, systems, acceptance criteria, glossary | Before designing systems |
+| `docs/BUILD_PLAN.md` | Milestones M0–M4 with tasks and exit criteria. M1 is a **gate**. | To know what to build next |
+| `docs/DECISIONS.md` | Decision log (ADR-lite) with rationale and alternatives, so settled choices are not re-litigated | When tempted to change a decided thing |
+| `docs/ROADMAP.md` | Everything deferred past v1 and the v1 seams it depends on | When deciding what *not* to build now |
 
-- [MRUKBase](./Assets/MRUKSamples/Basic): A basic scene showing the core functionality of MR Utility Kit leveraging the EffectMesh prefab to visualize the scene data.
-- [Floor Zone](./Assets/MRUKSamples/FloorZone): A scene showing how to find a floor zone unobstructed by other scene anchors.
-- [Multi Spawn](./Assets/MRUKSamples/MultiSpawn): A scene showing how to spawn objects in different locations within the room.
-- [Nav Mesh](./Assets/MRUKSamples/NavMesh): A scene showing how to create a nav mesh for navigation leveraging the scene data.
-- [Virtual Home](./Assets/MRUKSamples/VirtualHome): A scene showing how to reskin a room using the prefab spawner functionality.
-- [Passthrough Relighting](./Assets/MRUKSamples/PassthroughRelighting): A scene showing the effect of virtual shadows and highlights on scene objects.
-- [Destructible Mesh](./Assets/MRUKSamples/DestructibleMesh): A scene showing how to spawn a global mesh that can be segmented, usually used to create destructible environments.
-- [Environment Panel Placement](./Assets/MRUKSamples/EnvironmentPanelPlacement): A scene showing how to use EnvironmentRaycastManager to attach virtual panel to the physical environment.
-- [Space Map](./Assets/MRUKSamples/SpaceMap): A scene with the SpaceMap prefab added. It creates a texture which represents the room with a color gradient according to the settings of the prefab.
-- [Keyboard Tracking](./Assets/MRUKSamples/KeyboardTracker): A scene demonstrating generic keyboard detection and tracking.
-- [Bouncing Ball](./Assets/MRUKSamples/BouncingBall): A scene showing virtual balls interacting with the physical environment.
-- [QR Code Detection](./Assets/MRUKSamples/QRCodeDetection): A scene demonstrating QR code detection.
-- [HiFi Scene](./Assets/MRUKSamples/HiFiScene): A scene showing multiple floors and ceilings, slanted ceilings, inner walls.
+## Prime directives (the short version — full detail in `AGENTS.md`)
 
-More information on all samples can be found on our [developer website](https://developers.meta.com/horizon/documentation/unity/unity-mr-utility-kit-samples).
+1. **Separate logic from rendering.** The game runs as pure, deterministic data. The
+   headset renders a *view* of that data. This single seam is what makes the future
+   phone spectator and remote multiplayer cheap. Enforce it with assembly definitions.
+2. **Greedy-mesh the walls in chunks.** Never one GameObject per voxel. A 3D volume
+   fills with a lot of wall; per-voxel objects will destroy the standalone draw-call
+   budget on the first interesting round.
+3. **De-risk controls first.** Build a steering gray-box (M1) and run the **turn-around
+   test** before building anything on top of it. The chosen control/framing pairing
+   (world-axis-locked steering + room-scale embedded play) is the riskiest combination
+   in the design; M1 exists to validate or reject it early. See `DECISIONS.md` (D4, D5).
+4. **Defer the future, preserve the seams.** Do not build networking, remote play, or
+   phone code in v1 — but keep the simulation deterministic and its state serializable,
+   because those two nearly-free properties are what make Phases 3–5 tractable.
 
-## Getting The Code
+## Target platform (confirm before M0)
 
-Clone this repo using the "Code" button above, or this command:
-```sh
-git clone https://github.com/oculus-samples/Unity-MRUtilityKitSample.git
-```
-
-## How to run the project in Unity
-
-1. Make sure you're using  *Unity 6000.0.59f2* or newer.
-2. In the Project window, navigate to [Assets/MRUKSamples/](Assets/MRUKSamples).
-3. Click on individual scenes.
-4. Click **Play** button to explore scene functionality in Unity.
-
-## How to test on device
-
-1. Navigate to **File** > **Build Settings**.
-2. Select the sample scene that you want to test on device.
-3. Build an apk.
-4. Navigate to build destination folder and copy the APK to your device using [Meta Quest Developer Hub](https://developer.oculus.com/documentation/unity/ts-mqdh-deploy-build/).
-
-## SDK Dependencies
-
-All Meta SDKs can be found in the [Unity Asset Store](https://assetstore.unity.com/publishers/25353).
-This project depends on SDKs defined in the [Packages/manifest.json](./Packages/manifest.json):
-
-* [Meta XR Core SDK](https://assetstore.unity.com/packages/tools/integration/meta-xr-core-sdk-269169)
-* [Meta XR MR Utility Kit SDK](https://assetstore.unity.com/packages/tools/integration/meta-mr-utility-kit-272450)
-
-## Integrate Samples to your own project
-
-1. Make sure your project uses the same SDK version
-2. Move the samples to your project
-   <details>
-      <summary><b>Copy Samples directory</b></summary>
-
-      + Copy [Assets/MRUKSamples](./Assets/MRUKSamples) directory to your own project
-    </details>
-    <details>
-      <summary><b>Create UnityPackage and Import it</b></summary>
-
-      1. Open Unity-MRUtilityKitSample project in Unity
-      2. Right-click on [Assets/MRUKSamples](./Assets/MRUKSamples) and select <i>Export Package...</i>
-      3. Save package in an easy location to retrieve
-      4. Open your own project (where you want the samples to be added)
-      5. Click on <i>Assets->Import Package->Custom Package...</i> from the menu bar
-      6. Find the package we saved in step 3 and click <i>Open</i>
-    </details>
-
-## Licenses
-
-The Unity-MRUtilityKitSample project is licensed under [MIT LICENSE](./LICENSE).
+Mixed reality with **color** passthrough implies a Quest 3-class device (Quest 3 / 3S).
+Exact Unity version and XR stack (Meta XR SDK vs. OpenXR + Meta features) are the lead's
+call — pin them in M0 and record the choice in `DECISIONS.md`.

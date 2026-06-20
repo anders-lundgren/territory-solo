@@ -1,0 +1,40 @@
+Subject: Fix CS0619 errors in Meta XR SDK 203.0.0 on Unity 6000.5+
+Cause: Unity 6000.5 promoted GetInstanceID() and EntityId→int implicit cast to
+       hard errors ([Obsolete(..., true)]).
+Fix:   Replace with GetEntityId() in two MRUK log messages; use GetRawData()
+       to avoid the obsolete implicit cast in MCPBridge Reflection.cs.
+Note:  EntityId.GetRawData() returns ulong; unchecked cast to int preserves the
+       lower 32 bits which is sufficient for MCPBridge object identity tokens.
+
+--- a/Library/PackageCache/com.meta.xr.mrutilitykit@VERSION/Core/Scripts/MRUKGlobalContext.cs
++++ b/Library/PackageCache/com.meta.xr.mrutilitykit@VERSION/Core/Scripts/MRUKGlobalContext.cs
+@@ -47,8 +47,8 @@
+         private void OnDestroy()
+         {
+             if (!_isQuitting)
+             {
+-                Debug.LogError($"{nameof(MRUKGlobalContext)} with instance id {GetInstanceID()} was destroyed manually, this will prevent MRUK from working correctly. Recreating {nameof(MRUKGlobalContext)}...");
++                Debug.LogError($"{nameof(MRUKGlobalContext)} with instance id {GetEntityId()} was destroyed manually, this will prevent MRUK from working correctly. Recreating {nameof(MRUKGlobalContext)}...");
+                 CreateInstance();
+             }
+         }
+
+--- a/Library/PackageCache/com.meta.xr.mrutilitykit@VERSION/Core/Scripts/EnvironmentRaycastManager.cs
++++ b/Library/PackageCache/com.meta.xr.mrutilitykit@VERSION/Core/Scripts/EnvironmentRaycastManager.cs
+@@ -79,6 +79,6 @@
+             else
+             {
+-                Debug.LogError($"More than one {nameof(EnvironmentRaycastManager)} component. Only one instance is allowed at a time. New instance: {name} ({GetInstanceID()})", this);
++                Debug.LogError($"More than one {nameof(EnvironmentRaycastManager)} component. Only one instance is allowed at a time. New instance: {name} ({GetEntityId()})", this);
+             }
+         }
+
+--- a/Library/PackageCache/com.meta.xr.sdk.core@VERSION/Scripts/MCPBridge/Tools/Reflection.cs
++++ b/Library/PackageCache/com.meta.xr.sdk.core@VERSION/Scripts/MCPBridge/Tools/Reflection.cs
+@@ -460,7 +460,7 @@
+ #if UNITY_6000_5_OR_NEWER
+-                    return unityObject.GetEntityId();
++                    return unchecked((int)unityObject.GetEntityId().GetRawData());
+ #else
+                     return unityObject.GetInstanceID();
+ #endif

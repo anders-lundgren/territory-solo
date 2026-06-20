@@ -1,0 +1,17 @@
+{
+    "name": "Game.App",
+    "rootNamespace": "Game.App",
+    "references": [
+        "Game.Core",
+        "Game.Presentation"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": false,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
